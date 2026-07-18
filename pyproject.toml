@@ -1,0 +1,3 @@
+[tool.pytest.ini_options]
+testpaths = ["analytics_tests"]
+pythonpath = ["app/src/main/python"]
