@@ -14,6 +14,8 @@ lifecycle = "2.11.0"
 coreKtx = "1.19.0"
 serializationJson = "1.9.0"
 composeCharts = "0.2.5"
+datastorePreferences = "1.2.1"
+okhttp = "5.4.0"
 junit = "4.13.2"
 
 [libraries]
@@ -43,6 +45,9 @@ room-compiler = { group = "androidx.room", name = "room-compiler", version.ref =
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serializationJson" }
 
 compose-charts = { group = "io.github.ehsannarmani", name = "compose-charts", version.ref = "composeCharts" }
+
+datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastorePreferences" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 

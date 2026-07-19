@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.omer.mesuper.core.ui.formatKurusAsTl
+import com.omer.mesuper.feature.agenda.ui.AgendaViewModel
 import com.omer.mesuper.feature.finance.data.TxType
 import com.omer.mesuper.feature.finance.ui.FinanceViewModel
 import java.time.LocalDate
@@ -30,13 +32,14 @@ import java.util.Locale
 private val headerFormatter = DateTimeFormatter.ofPattern("d MMMM yyyy, EEEE", Locale("tr", "TR"))
 private val txDateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale("tr", "TR"))
 
-/**
- * Ana sayfa: bugünün özeti. Finansal veriler FinanceViewModel'den okunur;
- * Faz 2'de görev/streak kartları, Faz 3'te aktivite özeti eklenecek.
- */
+/** Ana sayfa: bugünün özeti. Finans + Ajanda verilerini tek ekranda birleştirir. */
 @Composable
-fun DashboardScreen(vm: FinanceViewModel = hiltViewModel()) {
+fun DashboardScreen(
+    vm: FinanceViewModel = hiltViewModel(),
+    agendaVm: AgendaViewModel = hiltViewModel(),
+) {
     val state by vm.uiState.collectAsStateWithLifecycle()
+    val agendaState by agendaVm.uiState.collectAsStateWithLifecycle()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -117,13 +120,38 @@ fun DashboardScreen(vm: FinanceViewModel = hiltViewModel()) {
 
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Bugünün Görevleri", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "🚧 Ajanda modülü Faz 2'de geliyor: görevler, alışkanlık zinciri, pomodoro, GitHub streaki",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Bugün", style = MaterialTheme.typography.titleMedium)
+
+                    val tickedHabits = agendaState.habits.count { it.tickedToday }
+                    val totalHabits = agendaState.habits.size
+                    val todayFocusMin = agendaState.pomodoroStats?.todayMinutes ?: 0
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(
+                            if (totalHabits > 0) "🔗 Zincir: $tickedHabits/$totalHabits" else "🔗 Alışkanlık yok",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Text("⏱ Odaklanma: $todayFocusMin dk", style = MaterialTheme.typography.bodySmall)
+                        agendaState.githubStreak?.let {
+                            Text("🔥 ${it.currentStreak}", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+
+                    val openTasks = agendaState.tasks.filter { !it.isDone }.take(3)
+                    if (openTasks.isEmpty()) {
+                        Text(
+                            "Açık görev yok 🎉",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        openTasks.forEach { task ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = false, onCheckedChange = { agendaVm.setTaskDone(task, true) })
+                                Text(task.title, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
                 }
             }
         }

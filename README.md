@@ -33,13 +33,13 @@ The Kotlin ↔ Python surface is a single function: `run(fn, payload_json) -> re
 | Module | Status | Highlights |
 |---|---|---|
 | Finance | ✅ v1 | income/expense tracking, category pie, month-end forecast, budget limits, subscriptions, savings goals, rule-based insights (generated in pandas), JSON backup/restore |
-| Dashboard | ✅ v1 | today at a glance, finance snapshot, quick-add sheet |
-| Agenda | planned | habit chains, to-dos, pomodoro (with task pairing), GitHub commit streak |
+| Dashboard | ✅ v1 | today at a glance, finance snapshot, habit/task/focus summary, quick-add sheet |
+| Agenda | ✅ v1 | habit chains with streaks (pandas), to-dos, pomodoro as a foreground service with task pairing, GitHub commit streak (GraphQL) |
 | Activity archive | planned | Steam playtime sync, game/movie/TV logging & ratings (RAWG + TMDB), sim-racing lap journal, weekly play/work balance |
 
 ## Tech stack
 
-Kotlin 2.3 · Jetpack Compose (Material 3) · Hilt · Room · WorkManager · kotlinx.serialization · Chaquopy 17 (Python 3.13, pandas) · GitHub Actions
+Kotlin 2.3 · Jetpack Compose (Material 3) · Hilt · Room · DataStore · OkHttp · WorkManager · kotlinx.serialization · Chaquopy 17 (Python 3.13, pandas) · GitHub Actions
 
 ## Development
 

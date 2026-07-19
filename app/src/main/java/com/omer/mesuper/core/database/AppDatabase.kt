@@ -5,6 +5,12 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.omer.mesuper.feature.agenda.data.AgendaDao
+import com.omer.mesuper.feature.agenda.data.GithubDayEntity
+import com.omer.mesuper.feature.agenda.data.HabitEntity
+import com.omer.mesuper.feature.agenda.data.HabitTickEntity
+import com.omer.mesuper.feature.agenda.data.PomodoroSessionEntity
+import com.omer.mesuper.feature.agenda.data.TaskEntity
 import com.omer.mesuper.feature.finance.data.BudgetEntity
 import com.omer.mesuper.feature.finance.data.CategoryEntity
 import com.omer.mesuper.feature.finance.data.FinanceDao
@@ -22,15 +28,21 @@ import com.omer.mesuper.feature.finance.data.TransactionEntity
         SubscriptionEntity::class,
         GoalEntity::class,
         GoalContributionEntity::class,
+        HabitEntity::class,
+        HabitTickEntity::class,
+        TaskEntity::class,
+        PomodoroSessionEntity::class,
+        GithubDayEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun financeDao(): FinanceDao
     abstract fun planningDao(): PlanningDao
+    abstract fun agendaDao(): AgendaDao
 
     companion object {
         /** İlk kurulumda tohum kategorileri ekler. */

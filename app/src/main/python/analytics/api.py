@@ -10,7 +10,7 @@ ayni kod masaustunde pytest ile test edilir.
 
 import json
 
-from . import finance
+from . import agenda, finance
 
 
 def _ping(payload):
@@ -23,6 +23,9 @@ _HANDLERS = {
     "finance.summary": finance.summary,
     "finance.forecast": finance.forecast,
     "finance.insights": finance.insights,
+    "agenda.habitStreaks": agenda.habit_streaks,
+    "agenda.pomodoroStats": agenda.pomodoro_stats,
+    "agenda.githubStreak": agenda.github_streak,
 }
 
 

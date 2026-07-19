@@ -2,6 +2,12 @@ package com.omer.mesuper.core.backup
 
 import androidx.room.withTransaction
 import com.omer.mesuper.core.database.AppDatabase
+import com.omer.mesuper.feature.agenda.data.AgendaDao
+import com.omer.mesuper.feature.agenda.data.GithubDayEntity
+import com.omer.mesuper.feature.agenda.data.HabitEntity
+import com.omer.mesuper.feature.agenda.data.HabitTickEntity
+import com.omer.mesuper.feature.agenda.data.PomodoroSessionEntity
+import com.omer.mesuper.feature.agenda.data.TaskEntity
 import com.omer.mesuper.feature.finance.data.BudgetEntity
 import com.omer.mesuper.feature.finance.data.CategoryEntity
 import com.omer.mesuper.feature.finance.data.FinanceDao
@@ -30,6 +36,11 @@ data class BackupDto(
     val subscriptions: List<SubscriptionDto>,
     val goals: List<GoalDto>,
     val goalContributions: List<ContributionDto>,
+    val habits: List<HabitDto> = emptyList(),
+    val habitTicks: List<HabitTickDto> = emptyList(),
+    val tasks: List<TaskDto> = emptyList(),
+    val pomodoroSessions: List<PomodoroSessionDto> = emptyList(),
+    val githubDays: List<GithubDayDto> = emptyList(),
 )
 
 @Serializable
@@ -56,11 +67,32 @@ data class GoalDto(val id: Long, val name: String, val targetKurus: Long)
 @Serializable
 data class ContributionDto(val id: Long, val goalId: Long, val amountKurus: Long, val date: String)
 
+@Serializable
+data class HabitDto(val id: Long, val name: String, val emoji: String, val colorHex: String, val createdAt: String)
+
+@Serializable
+data class HabitTickDto(val id: Long, val habitId: Long, val date: String)
+
+@Serializable
+data class TaskDto(
+    val id: Long, val title: String, val dueDate: String?,
+    val isDone: Boolean, val doneAtMs: Long?, val createdAtMs: Long,
+)
+
+@Serializable
+data class PomodoroSessionDto(
+    val id: Long, val taskId: Long?, val startedAtMs: Long, val durationMin: Int, val completed: Boolean,
+)
+
+@Serializable
+data class GithubDayDto(val date: String, val commitCount: Int)
+
 @Singleton
 class BackupManager @Inject constructor(
     private val db: AppDatabase,
     private val financeDao: FinanceDao,
     private val planningDao: PlanningDao,
+    private val agendaDao: AgendaDao,
 ) {
     // encodeDefaults: version alanı her yedekte açıkça yazılsın (ileri uyumluluk)
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true; encodeDefaults = true }
@@ -90,6 +122,17 @@ class BackupManager @Inject constructor(
             goalContributions = planningDao.dumpContributions().map {
                 ContributionDto(it.id, it.goalId, it.amountKurus, it.date.toString())
             },
+            habits = agendaDao.dumpHabits().map {
+                HabitDto(it.id, it.name, it.emoji, it.colorHex, it.createdAt.toString())
+            },
+            habitTicks = agendaDao.dumpTicks().map { HabitTickDto(it.id, it.habitId, it.date.toString()) },
+            tasks = agendaDao.dumpTasks().map {
+                TaskDto(it.id, it.title, it.dueDate?.toString(), it.isDone, it.doneAt?.toEpochMilli(), it.createdAt.toEpochMilli())
+            },
+            pomodoroSessions = agendaDao.dumpSessions().map {
+                PomodoroSessionDto(it.id, it.taskId, it.startedAt.toEpochMilli(), it.durationMin, it.completed)
+            },
+            githubDays = agendaDao.dumpGithubDays().map { GithubDayDto(it.date.toString(), it.commitCount) },
         )
         return json.encodeToString(BackupDto.serializer(), dto)
     }
@@ -99,6 +142,11 @@ class BackupManager @Inject constructor(
         val dto = json.decodeFromString(BackupDto.serializer(), raw)
         require(dto.version == 1) { "Desteklenmeyen yedek sürümü: ${dto.version}" }
         db.withTransaction {
+            agendaDao.clearSessions()
+            agendaDao.clearTicks()
+            agendaDao.clearTasks()
+            agendaDao.clearHabits()
+            agendaDao.clearGithubDays()
             planningDao.clearContributions()
             planningDao.clearGoals()
             planningDao.clearSubscriptions()
@@ -134,6 +182,22 @@ class BackupManager @Inject constructor(
             planningDao.insertContributions(dto.goalContributions.map {
                 GoalContributionEntity(it.id, it.goalId, it.amountKurus, LocalDate.parse(it.date))
             })
+
+            agendaDao.insertHabits(dto.habits.map {
+                HabitEntity(it.id, it.name, it.emoji, it.colorHex, LocalDate.parse(it.createdAt))
+            })
+            agendaDao.insertTicks(dto.habitTicks.map { HabitTickEntity(it.id, it.habitId, LocalDate.parse(it.date)) })
+            agendaDao.insertTasks(dto.tasks.map {
+                TaskEntity(
+                    id = it.id, title = it.title, dueDate = it.dueDate?.let(LocalDate::parse),
+                    isDone = it.isDone, doneAt = it.doneAtMs?.let(Instant::ofEpochMilli),
+                    createdAt = Instant.ofEpochMilli(it.createdAtMs),
+                )
+            })
+            agendaDao.insertSessions(dto.pomodoroSessions.map {
+                PomodoroSessionEntity(it.id, it.taskId, Instant.ofEpochMilli(it.startedAtMs), it.durationMin, it.completed)
+            })
+            agendaDao.upsertGithubDays(dto.githubDays.map { GithubDayEntity(LocalDate.parse(it.date), it.commitCount) })
         }
     }
 }

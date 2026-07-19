@@ -40,6 +40,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.omer.mesuper.feature.agenda.ui.AgendaScreen
 import com.omer.mesuper.feature.dashboard.ui.DashboardScreen
 import com.omer.mesuper.feature.finance.data.CategoryEntity
 import com.omer.mesuper.feature.finance.data.FinanceRepository
@@ -135,9 +136,7 @@ fun MainScreen(quickAdd: QuickAddViewModel = hiltViewModel()) {
         ) {
             composable(Destination.DASHBOARD.route) { DashboardScreen() }
             composable(Destination.FINANCE.route) { FinanceScreen() }
-            composable(Destination.AGENDA.route) {
-                PlaceholderScreen("🚧 Ajanda", "Faz 2: alışkanlık zinciri, to-do, pomodoro, GitHub streaki")
-            }
+            composable(Destination.AGENDA.route) { AgendaScreen() }
             composable(Destination.ACTIVITY.route) {
                 PlaceholderScreen("🚧 Aktivite Arşivi", "Faz 3: Steam süreleri, oyun/film logları, yarış günlüğü")
             }

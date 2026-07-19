@@ -83,5 +83,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.compose.charts)
 
+    implementation(libs.datastore.preferences)
+    implementation(libs.okhttp)
+
     testImplementation(libs.junit)
 }
