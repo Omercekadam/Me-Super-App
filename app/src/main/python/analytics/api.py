@@ -21,6 +21,8 @@ def _ping(payload):
 _HANDLERS = {
     "ping": _ping,
     "finance.summary": finance.summary,
+    "finance.forecast": finance.forecast,
+    "finance.insights": finance.insights,
 }
 
 

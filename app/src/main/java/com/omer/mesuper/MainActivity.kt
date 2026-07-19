@@ -4,8 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.omer.mesuper.core.ui.MainScreen
 import com.omer.mesuper.core.ui.MeSuperTheme
-import com.omer.mesuper.feature.dashboard.ui.ProofScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MeSuperTheme {
-                ProofScreen()
+                MainScreen()
             }
         }
     }

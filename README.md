@@ -32,8 +32,8 @@ The Kotlin ↔ Python surface is a single function: `run(fn, payload_json) -> re
 
 | Module | Status | Highlights |
 |---|---|---|
-| Finance | 🚧 in progress | income/expense tracking, category pie, month-end forecast, budget limits, subscriptions, savings goals, rule-based insights |
-| Dashboard | 🚧 in progress | today at a glance + quick-add bar |
+| Finance | ✅ v1 | income/expense tracking, category pie, month-end forecast, budget limits, subscriptions, savings goals, rule-based insights (generated in pandas), JSON backup/restore |
+| Dashboard | ✅ v1 | today at a glance, finance snapshot, quick-add sheet |
 | Agenda | planned | habit chains, to-dos, pomodoro (with task pairing), GitHub commit streak |
 | Activity archive | planned | Steam playtime sync, game/movie/TV logging & ratings (RAWG + TMDB), sim-racing lap journal, weekly play/work balance |
 

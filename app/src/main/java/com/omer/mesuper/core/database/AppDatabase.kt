@@ -1,21 +1,36 @@
 package com.omer.mesuper.core.database
 
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.omer.mesuper.feature.finance.data.BudgetEntity
 import com.omer.mesuper.feature.finance.data.CategoryEntity
 import com.omer.mesuper.feature.finance.data.FinanceDao
+import com.omer.mesuper.feature.finance.data.GoalContributionEntity
+import com.omer.mesuper.feature.finance.data.GoalEntity
+import com.omer.mesuper.feature.finance.data.PlanningDao
+import com.omer.mesuper.feature.finance.data.SubscriptionEntity
 import com.omer.mesuper.feature.finance.data.TransactionEntity
 
 @Database(
-    entities = [CategoryEntity::class, TransactionEntity::class],
-    version = 1,
+    entities = [
+        CategoryEntity::class,
+        TransactionEntity::class,
+        BudgetEntity::class,
+        SubscriptionEntity::class,
+        GoalEntity::class,
+        GoalContributionEntity::class,
+    ],
+    version = 2,
     exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun financeDao(): FinanceDao
+    abstract fun planningDao(): PlanningDao
 
     companion object {
         /** İlk kurulumda tohum kategorileri ekler. */

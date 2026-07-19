@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.omer.mesuper.core.database.AppDatabase
 import com.omer.mesuper.feature.finance.data.FinanceDao
+import com.omer.mesuper.feature.finance.data.PlanningDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,4 +25,7 @@ object AppModule {
 
     @Provides
     fun provideFinanceDao(db: AppDatabase): FinanceDao = db.financeDao()
+
+    @Provides
+    fun providePlanningDao(db: AppDatabase): PlanningDao = db.planningDao()
 }
