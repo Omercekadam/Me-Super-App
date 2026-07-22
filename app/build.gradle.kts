@@ -86,5 +86,12 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.okhttp)
 
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.compiler.androidx)
+
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
     testImplementation(libs.junit)
 }

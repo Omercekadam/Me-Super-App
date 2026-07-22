@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.omer.mesuper.core.ui.formatKurusAsTl
+import com.omer.mesuper.feature.activity.ui.ActivityViewModel
 import com.omer.mesuper.feature.agenda.ui.AgendaViewModel
 import com.omer.mesuper.feature.finance.data.TxType
 import com.omer.mesuper.feature.finance.ui.FinanceViewModel
@@ -37,9 +38,11 @@ private val txDateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale("tr", 
 fun DashboardScreen(
     vm: FinanceViewModel = hiltViewModel(),
     agendaVm: AgendaViewModel = hiltViewModel(),
+    activityVm: ActivityViewModel = hiltViewModel(),
 ) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val agendaState by agendaVm.uiState.collectAsStateWithLifecycle()
+    val activityState by activityVm.uiState.collectAsStateWithLifecycle()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -151,6 +154,34 @@ fun DashboardScreen(
                                 Text(task.title, style = MaterialTheme.typography.bodyMedium)
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Aktivite (son 7 gün)", style = MaterialTheme.typography.titleMedium)
+                    val balance = activityState.weeklyBalance
+                    if (balance == null || (balance.gameMinutes == 0 && balance.workMinutes == 0)) {
+                        Text(
+                            "Bu hafta henüz oyun/odaklanma verisi yok.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("🎮 ${balance.gameMinutes} dk", style = MaterialTheme.typography.bodySmall)
+                            Text("🎯 ${balance.workMinutes} dk", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    activityState.games.filter { it.minutesLast7Days > 0 }.maxByOrNull { it.minutesLast7Days }?.let {
+                        Text(
+                            "En çok oynanan: ${it.name} (${it.minutesLast7Days} dk)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }

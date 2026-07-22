@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -13,6 +14,23 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.MeSuper">
+
+        <!-- WorkManager'ı Hilt enjeksiyonu tamamlandıktan sonra MeSuperApp.onCreate() içinde
+             elle başlatıyoruz (bkz. WorkManager.initialize çağrısı); varsayılan androidx.startup
+             initializer'ı ise Application.onCreate()'ten ÖNCE çalışıp henüz enjekte edilmemiş
+             HiltWorkerFactory ile karşılaşır ve worker'ları yanlış (reflection) yoldan kurmaya
+             çalışır. Bu yüzden burada devre dışı bırakılıyor. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
         <activity
             android:name=".MainActivity"
             android:exported="true">

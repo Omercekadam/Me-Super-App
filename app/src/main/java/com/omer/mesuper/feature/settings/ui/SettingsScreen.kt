@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.omer.mesuper.core.backup.BackupManager
 import com.omer.mesuper.core.datastore.UserPrefsStore
+import com.omer.mesuper.feature.activity.data.ActivityRepository
 import com.omer.mesuper.feature.agenda.data.AgendaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -47,6 +50,7 @@ class SettingsViewModel @Inject constructor(
     private val backupManager: BackupManager,
     private val userPrefsStore: UserPrefsStore,
     private val agendaRepository: AgendaRepository,
+    private val activityRepository: ActivityRepository,
 ) : ViewModel() {
 
     private val _status = MutableStateFlow<String?>(null)
@@ -55,8 +59,20 @@ class SettingsViewModel @Inject constructor(
     private val _githubStatus = MutableStateFlow<String?>(null)
     val githubStatus: StateFlow<String?> = _githubStatus
 
+    private val _steamStatus = MutableStateFlow<String?>(null)
+    val steamStatus: StateFlow<String?> = _steamStatus
+
+    private val _rawgStatus = MutableStateFlow<String?>(null)
+    val rawgStatus: StateFlow<String?> = _rawgStatus
+
+    private val _tmdbStatus = MutableStateFlow<String?>(null)
+    val tmdbStatus: StateFlow<String?> = _tmdbStatus
+
     val githubUsername: StateFlow<String?> =
         userPrefsStore.githubUsername.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val steamId: StateFlow<String?> =
+        userPrefsStore.steamId.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun exportTo(uri: Uri) {
         viewModelScope.launch {
@@ -95,6 +111,30 @@ class SettingsViewModel @Inject constructor(
             }.getOrElse { "❌ Senkronizasyon hatası: ${it.message}" }
         }
     }
+
+    fun saveSteamCredentials(apiKey: String, steamId: String) {
+        viewModelScope.launch {
+            userPrefsStore.setSteamCredentials(apiKey, steamId)
+            _steamStatus.value = runCatching {
+                activityRepository.syncSteamLibrary()
+                "✅ Steam kütüphanesi senkronize edildi"
+            }.getOrElse { "❌ Senkronizasyon hatası: ${it.message}" }
+        }
+    }
+
+    fun saveRawgApiKey(apiKey: String) {
+        viewModelScope.launch {
+            userPrefsStore.setRawgApiKey(apiKey)
+            _rawgStatus.value = "✅ Kaydedildi"
+        }
+    }
+
+    fun saveTmdbApiKey(apiKey: String) {
+        viewModelScope.launch {
+            userPrefsStore.setTmdbApiKey(apiKey)
+            _tmdbStatus.value = "✅ Kaydedildi"
+        }
+    }
 }
 
 @Composable
@@ -102,6 +142,10 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val status by vm.status.collectAsStateWithLifecycle()
     val githubStatus by vm.githubStatus.collectAsStateWithLifecycle()
     val savedUsername by vm.githubUsername.collectAsStateWithLifecycle()
+    val steamStatus by vm.steamStatus.collectAsStateWithLifecycle()
+    val rawgStatus by vm.rawgStatus.collectAsStateWithLifecycle()
+    val tmdbStatus by vm.tmdbStatus.collectAsStateWithLifecycle()
+    val savedSteamId by vm.steamId.collectAsStateWithLifecycle()
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -113,10 +157,15 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
 
     var patInput by rememberSaveable { mutableStateOf("") }
     var usernameInput by rememberSaveable(savedUsername) { mutableStateOf(savedUsername ?: "") }
+    var steamKeyInput by rememberSaveable { mutableStateOf("") }
+    var steamIdInput by rememberSaveable(savedSteamId) { mutableStateOf(savedSteamId ?: "") }
+    var rawgKeyInput by rememberSaveable { mutableStateOf("") }
+    var tmdbKeyInput by rememberSaveable { mutableStateOf("") }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -149,6 +198,86 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text("Kaydet ve Senkronize Et") }
                 githubStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            }
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Steam Kütüphanesi", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Oynama süresi senkronu için Steam Web API anahtarı ve 64-bit Steam ID gerekir. " +
+                        "Profilin \"oyun detayları\" gizlilik ayarı herkese açık olmalı.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = steamKeyInput,
+                    onValueChange = { steamKeyInput = it },
+                    label = { Text("Steam Web API anahtarı") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = steamIdInput,
+                    onValueChange = { steamIdInput = it },
+                    label = { Text("Steam ID (64-bit)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+                Button(
+                    onClick = { vm.saveSteamCredentials(steamKeyInput, steamIdInput) },
+                    enabled = steamKeyInput.isNotBlank() && steamIdInput.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Kaydet ve Senkronize Et") }
+                steamStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            }
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("RAWG (Oyun Metadata)", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Elle eklenen oyunlara kapak görseli ve tür bilgisi getirmek için ücretsiz RAWG API anahtarı.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = rawgKeyInput,
+                    onValueChange = { rawgKeyInput = it },
+                    label = { Text("RAWG API anahtarı") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+                Button(
+                    onClick = { vm.saveRawgApiKey(rawgKeyInput) },
+                    enabled = rawgKeyInput.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Kaydet") }
+                rawgStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            }
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("TMDB (Film/Dizi)", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Film/dizi arama ve loglama için kişisel kullanım amaçlı ücretsiz TMDB API anahtarı.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = tmdbKeyInput,
+                    onValueChange = { tmdbKeyInput = it },
+                    label = { Text("TMDB API anahtarı") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+                Button(
+                    onClick = { vm.saveTmdbApiKey(tmdbKeyInput) },
+                    enabled = tmdbKeyInput.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Kaydet") }
+                tmdbStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
             }
         }
 

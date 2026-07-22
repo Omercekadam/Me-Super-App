@@ -3,6 +3,7 @@ package com.omer.mesuper.core.di
 import android.content.Context
 import androidx.room.Room
 import com.omer.mesuper.core.database.AppDatabase
+import com.omer.mesuper.feature.activity.data.ActivityDao
 import com.omer.mesuper.feature.agenda.data.AgendaDao
 import com.omer.mesuper.feature.finance.data.FinanceDao
 import com.omer.mesuper.feature.finance.data.PlanningDao
@@ -34,6 +35,9 @@ object AppModule {
 
     @Provides
     fun provideAgendaDao(db: AppDatabase): AgendaDao = db.agendaDao()
+
+    @Provides
+    fun provideActivityDao(db: AppDatabase): ActivityDao = db.activityDao()
 
     @Provides
     @Singleton

@@ -10,7 +10,7 @@ ayni kod masaustunde pytest ile test edilir.
 
 import json
 
-from . import agenda, finance
+from . import activity, agenda, finance
 
 
 def _ping(payload):
@@ -26,6 +26,9 @@ _HANDLERS = {
     "agenda.habitStreaks": agenda.habit_streaks,
     "agenda.pomodoroStats": agenda.pomodoro_stats,
     "agenda.githubStreak": agenda.github_streak,
+    "activity.steamPlaytimeDiff": activity.steam_playtime_diff,
+    "activity.genreBreakdown": activity.genre_breakdown,
+    "activity.weeklyBalance": activity.weekly_balance,
 }
 
 

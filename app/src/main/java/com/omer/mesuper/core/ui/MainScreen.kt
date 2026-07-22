@@ -1,8 +1,5 @@
 package com.omer.mesuper.core.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -40,6 +37,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.omer.mesuper.feature.activity.ui.ActivityScreen
 import com.omer.mesuper.feature.agenda.ui.AgendaScreen
 import com.omer.mesuper.feature.dashboard.ui.DashboardScreen
 import com.omer.mesuper.feature.finance.data.CategoryEntity
@@ -137,9 +135,7 @@ fun MainScreen(quickAdd: QuickAddViewModel = hiltViewModel()) {
             composable(Destination.DASHBOARD.route) { DashboardScreen() }
             composable(Destination.FINANCE.route) { FinanceScreen() }
             composable(Destination.AGENDA.route) { AgendaScreen() }
-            composable(Destination.ACTIVITY.route) {
-                PlaceholderScreen("🚧 Aktivite Arşivi", "Faz 3: Steam süreleri, oyun/film logları, yarış günlüğü")
-            }
+            composable(Destination.ACTIVITY.route) { ActivityScreen() }
             composable("settings") { SettingsScreen() }
         }
     }
@@ -156,23 +152,5 @@ fun MainScreen(quickAdd: QuickAddViewModel = hiltViewModel()) {
                 onSaved = { showQuickAdd = false },
             )
         }
-    }
-}
-
-@Composable
-private fun PlaceholderScreen(title: String, subtitle: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(title, style = MaterialTheme.typography.headlineSmall)
-        Text(
-            subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }

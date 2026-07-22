@@ -2,6 +2,16 @@ package com.omer.mesuper.core.backup
 
 import androidx.room.withTransaction
 import com.omer.mesuper.core.database.AppDatabase
+import com.omer.mesuper.feature.activity.data.ActivityDao
+import com.omer.mesuper.feature.activity.data.GameEntity
+import com.omer.mesuper.feature.activity.data.GameSource
+import com.omer.mesuper.feature.activity.data.GameStatus
+import com.omer.mesuper.feature.activity.data.ManualPlayLogEntity
+import com.omer.mesuper.feature.activity.data.MediaEntity
+import com.omer.mesuper.feature.activity.data.MediaStatus
+import com.omer.mesuper.feature.activity.data.MediaType
+import com.omer.mesuper.feature.activity.data.RaceNoteEntity
+import com.omer.mesuper.feature.activity.data.SteamSnapshotEntity
 import com.omer.mesuper.feature.agenda.data.AgendaDao
 import com.omer.mesuper.feature.agenda.data.GithubDayEntity
 import com.omer.mesuper.feature.agenda.data.HabitEntity
@@ -41,6 +51,11 @@ data class BackupDto(
     val tasks: List<TaskDto> = emptyList(),
     val pomodoroSessions: List<PomodoroSessionDto> = emptyList(),
     val githubDays: List<GithubDayDto> = emptyList(),
+    val games: List<GameDto> = emptyList(),
+    val steamSnapshots: List<SteamSnapshotDto> = emptyList(),
+    val manualPlayLogs: List<ManualPlayLogDto> = emptyList(),
+    val media: List<MediaDto> = emptyList(),
+    val raceNotes: List<RaceNoteDto> = emptyList(),
 )
 
 @Serializable
@@ -87,12 +102,38 @@ data class PomodoroSessionDto(
 @Serializable
 data class GithubDayDto(val date: String, val commitCount: Int)
 
+@Serializable
+data class GameDto(
+    val id: Long, val source: String, val steamAppId: Long?, val rawgId: Long?,
+    val name: String, val genres: String, val coverUrl: String?, val rating10: Int?,
+    val status: String, val createdAtMs: Long,
+)
+
+@Serializable
+data class SteamSnapshotDto(val id: Long, val steamAppId: Long, val date: String, val playtimeForeverMin: Long)
+
+@Serializable
+data class ManualPlayLogDto(val id: Long, val gameId: Long, val date: String, val minutes: Int)
+
+@Serializable
+data class MediaDto(
+    val id: Long, val tmdbId: Long, val type: String, val title: String,
+    val posterUrl: String?, val rating10: Int?, val status: String, val watchedAt: String?,
+)
+
+@Serializable
+data class RaceNoteDto(
+    val id: Long, val date: String, val sim: String, val track: String,
+    val car: String, val bestLapMs: Long?, val setupNotes: String,
+)
+
 @Singleton
 class BackupManager @Inject constructor(
     private val db: AppDatabase,
     private val financeDao: FinanceDao,
     private val planningDao: PlanningDao,
     private val agendaDao: AgendaDao,
+    private val activityDao: ActivityDao,
 ) {
     // encodeDefaults: version alanı her yedekte açıkça yazılsın (ileri uyumluluk)
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true; encodeDefaults = true }
@@ -133,6 +174,24 @@ class BackupManager @Inject constructor(
                 PomodoroSessionDto(it.id, it.taskId, it.startedAt.toEpochMilli(), it.durationMin, it.completed)
             },
             githubDays = agendaDao.dumpGithubDays().map { GithubDayDto(it.date.toString(), it.commitCount) },
+            games = activityDao.dumpGames().map {
+                GameDto(
+                    it.id, it.source.name, it.steamAppId, it.rawgId, it.name, it.genres,
+                    it.coverUrl, it.rating10, it.status.name, it.createdAt.toEpochMilli(),
+                )
+            },
+            steamSnapshots = activityDao.dumpSteamSnapshots().map {
+                SteamSnapshotDto(it.id, it.steamAppId, it.date.toString(), it.playtimeForeverMin)
+            },
+            manualPlayLogs = activityDao.dumpPlayLogs().map {
+                ManualPlayLogDto(it.id, it.gameId, it.date.toString(), it.minutes)
+            },
+            media = activityDao.dumpMedia().map {
+                MediaDto(it.id, it.tmdbId, it.type.name, it.title, it.posterUrl, it.rating10, it.status.name, it.watchedAt?.toString())
+            },
+            raceNotes = activityDao.dumpRaceNotes().map {
+                RaceNoteDto(it.id, it.date.toString(), it.sim, it.track, it.car, it.bestLapMs, it.setupNotes)
+            },
         )
         return json.encodeToString(BackupDto.serializer(), dto)
     }
@@ -142,6 +201,12 @@ class BackupManager @Inject constructor(
         val dto = json.decodeFromString(BackupDto.serializer(), raw)
         require(dto.version == 1) { "Desteklenmeyen yedek sürümü: ${dto.version}" }
         db.withTransaction {
+            activityDao.clearPlayLogs()
+            activityDao.clearGames()
+            activityDao.clearSteamSnapshots()
+            activityDao.clearMedia()
+            activityDao.clearRaceNotes()
+
             agendaDao.clearSessions()
             agendaDao.clearTicks()
             agendaDao.clearTasks()
@@ -198,6 +263,30 @@ class BackupManager @Inject constructor(
                 PomodoroSessionEntity(it.id, it.taskId, Instant.ofEpochMilli(it.startedAtMs), it.durationMin, it.completed)
             })
             agendaDao.upsertGithubDays(dto.githubDays.map { GithubDayEntity(LocalDate.parse(it.date), it.commitCount) })
+
+            activityDao.insertGames(dto.games.map {
+                GameEntity(
+                    id = it.id, source = GameSource.valueOf(it.source), steamAppId = it.steamAppId, rawgId = it.rawgId,
+                    name = it.name, genres = it.genres, coverUrl = it.coverUrl, rating10 = it.rating10,
+                    status = GameStatus.valueOf(it.status), createdAt = Instant.ofEpochMilli(it.createdAtMs),
+                )
+            })
+            activityDao.insertSteamSnapshots(dto.steamSnapshots.map {
+                SteamSnapshotEntity(it.id, it.steamAppId, LocalDate.parse(it.date), it.playtimeForeverMin)
+            })
+            activityDao.insertPlayLogs(dto.manualPlayLogs.map {
+                ManualPlayLogEntity(it.id, it.gameId, LocalDate.parse(it.date), it.minutes)
+            })
+            activityDao.insertMediaList(dto.media.map {
+                MediaEntity(
+                    id = it.id, tmdbId = it.tmdbId, type = MediaType.valueOf(it.type), title = it.title,
+                    posterUrl = it.posterUrl, rating10 = it.rating10, status = MediaStatus.valueOf(it.status),
+                    watchedAt = it.watchedAt?.let(LocalDate::parse),
+                )
+            })
+            activityDao.insertRaceNotes(dto.raceNotes.map {
+                RaceNoteEntity(it.id, LocalDate.parse(it.date), it.sim, it.track, it.car, it.bestLapMs, it.setupNotes)
+            })
         }
     }
 }
