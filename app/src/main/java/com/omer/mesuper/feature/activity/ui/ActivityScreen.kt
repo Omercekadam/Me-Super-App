@@ -21,13 +21,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -51,6 +46,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.omer.mesuper.core.ui.DeleteButton
+import com.omer.mesuper.core.ui.HeroPanel
+import com.omer.mesuper.core.ui.LocalModuleColors
+import com.omer.mesuper.core.ui.ScreenTitle
 import com.omer.mesuper.core.network.RawgGameResult
 import com.omer.mesuper.core.network.TmdbMediaKind
 import com.omer.mesuper.core.network.TmdbSearchResult
@@ -96,11 +95,15 @@ fun ActivityScreen(vm: ActivityViewModel = hiltViewModel()) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item { ScreenTitle(title = "Aktivite") }
+
         state.error?.let { error ->
             item {
-                Card(Modifier.fillMaxWidth()) {
-                    Text("Analiz hatası: $error", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
-                }
+                Text(
+                    "Analiz hatası: $error",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
 
@@ -209,44 +212,45 @@ private fun EmptyStateHint(emoji: String, text: String) {
 
 @Composable
 private fun WeeklyBalanceSection(balance: WeeklyBalance?, genres: List<GenreMinutes>) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Haftalık Denge", style = MaterialTheme.typography.titleMedium)
-            if (balance == null || (balance.gameMinutes == 0 && balance.workMinutes == 0)) {
-                Text(
-                    "Bu hafta henüz oyun/pomodoro verisi yok.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                val animatedRatio by animateFloatAsState(
-                    targetValue = balance.gameRatio.toFloat(),
-                    label = "weeklyBalanceRatio",
-                )
-                LinearProgressIndicator(
-                    progress = { animatedRatio },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                )
-                Text(
-                    "🎮 ${balance.gameMinutes} dk (%${"%.0f".format(balance.gameRatio * 100)}) • " +
-                        "🎯 ${balance.workMinutes} dk (%${"%.0f".format(balance.workRatio * 100)})",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            if (genres.isNotEmpty()) {
-                Text("Tür kırılımı (son 7 gün)", style = MaterialTheme.typography.labelMedium)
-                genres.take(5).forEach { g ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(g.genre, style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            "${g.minutes} dk (%${"%.0f".format(g.ratio * 100)})",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+    val modules = LocalModuleColors.current
+    // Odak çıpası: haftalık oyun/çalışma dengesi (aktivite-turuncu, gradyansız).
+    HeroPanel(
+        containerColor = modules.activity.container,
+        contentColor = modules.activity.onContainer,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("Haftalık Denge", style = MaterialTheme.typography.titleMedium)
+        if (balance == null || (balance.gameMinutes == 0 && balance.workMinutes == 0)) {
+            Text("Bu hafta henüz oyun/pomodoro verisi yok.", style = MaterialTheme.typography.bodySmall)
+        } else {
+            val animatedRatio by animateFloatAsState(
+                targetValue = balance.gameRatio.toFloat(),
+                label = "weeklyBalanceRatio",
+            )
+            LinearProgressIndicator(
+                progress = { animatedRatio },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = modules.activity.accent,
+                trackColor = modules.activity.onContainer.copy(alpha = 0.2f),
+            )
+            Text(
+                "🎮 ${balance.gameMinutes} dk (%${"%.0f".format(balance.gameRatio * 100)}) • " +
+                    "🎯 ${balance.workMinutes} dk (%${"%.0f".format(balance.workRatio * 100)})",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        if (genres.isNotEmpty()) {
+            Text("Tür kırılımı (son 7 gün)", style = MaterialTheme.typography.labelMedium)
+            genres.take(5).forEach { g ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(g.genre, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "${g.minutes} dk (%${"%.0f".format(g.ratio * 100)})",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                 }
             }
         }
@@ -261,47 +265,45 @@ private fun GameCard(
     onLogPlaytime: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    game.coverUrl?.let { url ->
-                        AsyncImage(
-                            model = url,
-                            contentDescription = null,
-                            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(6.dp)),
-                            contentScale = ContentScale.Crop,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                    }
-                    Column {
-                        Text(game.name, style = MaterialTheme.typography.titleSmall)
-                        if (game.genres.isNotBlank()) {
-                            Text(game.genres, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                game.coverUrl?.let { url ->
+                    AsyncImage(
+                        model = url,
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp).clip(RoundedCornerShape(6.dp)),
+                        contentScale = ContentScale.Crop,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                Column {
+                    Text(game.name, style = MaterialTheme.typography.titleSmall)
+                    if (game.genres.isNotBlank()) {
+                        Text(game.genres, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                DeleteButton(onDelete)
             }
-            Text(
-                "Son 7 gün: ${game.minutesLast7Days} dk" + (game.rating10?.let { " • ⭐ $it/10" } ?: ""),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                GameStatus.entries.forEach { s ->
-                    FilterChip(selected = game.status == s, onClick = { onStatusChange(s) }, label = { Text(s.label()) })
-                }
+            DeleteButton(onDelete)
+        }
+        Text(
+            "Son 7 gün: ${game.minutesLast7Days} dk" + (game.rating10?.let { " • ⭐ $it/10" } ?: ""),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            GameStatus.entries.forEach { s ->
+                FilterChip(selected = game.status == s, onClick = { onStatusChange(s) }, label = { Text(s.label()) })
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onRate) { Text("⭐ Puanla") }
-                if (game.source == GameSource.MANUAL) {
-                    TextButton(onClick = onLogPlaytime) { Text("⏱ Süre Ekle") }
-                }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = onRate) { Text("⭐ Puanla") }
+            if (game.source == GameSource.MANUAL) {
+                TextButton(onClick = onLogPlaytime) { Text("⏱ Süre Ekle") }
             }
         }
     }
@@ -309,55 +311,51 @@ private fun GameCard(
 
 @Composable
 private fun MediaCard(media: MediaEntity, onMarkWatched: () -> Unit, onDelete: () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            media.posterUrl?.let { url ->
-                AsyncImage(
-                    model = url,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(6.dp)),
-                    contentScale = ContentScale.Crop,
-                )
-                Spacer(Modifier.width(10.dp))
-            }
-            Column(Modifier.weight(1f)) {
-                Text(media.title, style = MaterialTheme.typography.titleSmall)
-                Text(
-                    (if (media.type == MediaType.MOVIE) "Film" else "Dizi") +
-                        (media.rating10?.let { " • ⭐ $it/10" } ?: "") +
-                        if (media.status == MediaStatus.WATCHED) " • İzlendi" else " • İzleme listesi",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (media.status == com.omer.mesuper.feature.activity.data.MediaStatus.WATCHLIST) {
-                TextButton(onClick = onMarkWatched) { Text("İzledim") }
-            }
-            DeleteButton(onDelete)
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        media.posterUrl?.let { url ->
+            AsyncImage(
+                model = url,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(6.dp)),
+                contentScale = ContentScale.Crop,
+            )
+            Spacer(Modifier.width(10.dp))
         }
+        Column(Modifier.weight(1f)) {
+            Text(media.title, style = MaterialTheme.typography.titleSmall)
+            Text(
+                (if (media.type == MediaType.MOVIE) "Film" else "Dizi") +
+                    (media.rating10?.let { " • ⭐ $it/10" } ?: "") +
+                    if (media.status == MediaStatus.WATCHED) " • İzlendi" else " • İzleme listesi",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (media.status == MediaStatus.WATCHLIST) {
+            TextButton(onClick = onMarkWatched) { Text("İzledim") }
+        }
+        DeleteButton(onDelete)
     }
 }
 
 @Composable
 private fun RaceNoteCard(note: RaceNoteEntity, onDelete: () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("${note.sim} • ${note.track}", style = MaterialTheme.typography.titleSmall)
-                DeleteButton(onDelete)
-            }
-            Text(
-                "${note.car} • ${note.date}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            note.bestLapMs?.let { Text("⏱ ${formatLapTime(it)}", style = MaterialTheme.typography.bodyMedium) }
-            if (note.setupNotes.isNotBlank()) Text(note.setupNotes, style = MaterialTheme.typography.bodySmall)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("${note.sim} • ${note.track}", style = MaterialTheme.typography.titleSmall)
+            DeleteButton(onDelete)
         }
+        Text(
+            "${note.car} • ${note.date}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        note.bestLapMs?.let { Text("⏱ ${formatLapTime(it)}", style = MaterialTheme.typography.bodyMedium) }
+        if (note.setupNotes.isNotBlank()) Text(note.setupNotes, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -615,16 +613,4 @@ private fun AddRaceNoteDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } },
     )
-}
-
-@Composable
-private fun DeleteButton(onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(32.dp)) {
-        Icon(
-            Icons.Default.Delete,
-            contentDescription = "Sil",
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(18.dp),
-        )
-    }
 }

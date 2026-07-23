@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -33,6 +32,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.omer.mesuper.core.backup.BackupManager
 import com.omer.mesuper.core.datastore.UserPrefsStore
+import com.omer.mesuper.core.ui.ScreenTitle
+import com.omer.mesuper.core.ui.SectionHeader
 import com.omer.mesuper.feature.activity.data.ActivityRepository
 import com.omer.mesuper.feature.agenda.data.AgendaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -181,172 +182,160 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Görünüm", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Uygulama rengini markanın Navy+Amber paletinden mi yoksa cihazının sistem " +
-                        "renklerinden mi (Material You) alsın? Değişiklik anında uygulanır.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    SegmentedButton(
-                        selected = !dynamicColor,
-                        onClick = { vm.setDynamicColor(false) },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                    ) { Text("Marka rengi") }
-                    SegmentedButton(
-                        selected = dynamicColor,
-                        onClick = { vm.setDynamicColor(true) },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    ) { Text("Sistem rengi") }
-                }
+        ScreenTitle(title = "Ayarlar")
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionHeader("Görünüm")
+            Text(
+                "Uygulama rengini markanın Navy+Amber paletinden mi yoksa cihazının sistem " +
+                    "renklerinden mi (Material You) alsın? Değişiklik anında uygulanır.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = !dynamicColor,
+                    onClick = { vm.setDynamicColor(false) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                ) { Text("Marka rengi") }
+                SegmentedButton(
+                    selected = dynamicColor,
+                    onClick = { vm.setDynamicColor(true) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                ) { Text("Sistem rengi") }
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("GitHub Streak", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Ajanda'da günlük commit sayısı ve streak için bir Personal Access Token " +
-                        "(read:user, repo kapsamı yeterli) gerekir. Anahtar sadece cihazda saklanır.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                OutlinedTextField(
-                    value = usernameInput,
-                    onValueChange = { usernameInput = it },
-                    label = { Text("GitHub kullanıcı adı") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = patInput,
-                    onValueChange = { patInput = it },
-                    label = { Text("Personal Access Token") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                Button(
-                    onClick = { vm.saveGithubCredentials(patInput, usernameInput) },
-                    enabled = patInput.isNotBlank() && usernameInput.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Kaydet ve Senkronize Et") }
-                githubStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-            }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionHeader("GitHub Streak")
+            Text(
+                "Ajanda'da günlük commit sayısı ve streak için bir Personal Access Token " +
+                    "(read:user, repo kapsamı yeterli) gerekir. Anahtar sadece cihazda saklanır.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedTextField(
+                value = usernameInput,
+                onValueChange = { usernameInput = it },
+                label = { Text("GitHub kullanıcı adı") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = patInput,
+                onValueChange = { patInput = it },
+                label = { Text("Personal Access Token") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            Button(
+                onClick = { vm.saveGithubCredentials(patInput, usernameInput) },
+                enabled = patInput.isNotBlank() && usernameInput.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Kaydet ve Senkronize Et") }
+            githubStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Steam Kütüphanesi", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Oynama süresi senkronu için Steam Web API anahtarı ve 64-bit Steam ID gerekir. " +
-                        "Profilin \"oyun detayları\" gizlilik ayarı herkese açık olmalı.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                OutlinedTextField(
-                    value = steamKeyInput,
-                    onValueChange = { steamKeyInput = it },
-                    label = { Text("Steam Web API anahtarı") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = steamIdInput,
-                    onValueChange = { steamIdInput = it },
-                    label = { Text("Steam ID (64-bit)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                Button(
-                    onClick = { vm.saveSteamCredentials(steamKeyInput, steamIdInput) },
-                    enabled = steamKeyInput.isNotBlank() && steamIdInput.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Kaydet ve Senkronize Et") }
-                steamStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-            }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionHeader("Steam Kütüphanesi")
+            Text(
+                "Oynama süresi senkronu için Steam Web API anahtarı ve 64-bit Steam ID gerekir. " +
+                    "Profilin \"oyun detayları\" gizlilik ayarı herkese açık olmalı.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedTextField(
+                value = steamKeyInput,
+                onValueChange = { steamKeyInput = it },
+                label = { Text("Steam Web API anahtarı") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = steamIdInput,
+                onValueChange = { steamIdInput = it },
+                label = { Text("Steam ID (64-bit)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            Button(
+                onClick = { vm.saveSteamCredentials(steamKeyInput, steamIdInput) },
+                enabled = steamKeyInput.isNotBlank() && steamIdInput.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Kaydet ve Senkronize Et") }
+            steamStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("RAWG (Oyun Metadata)", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Elle eklenen oyunlara kapak görseli ve tür bilgisi getirmek için ücretsiz RAWG API anahtarı.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                OutlinedTextField(
-                    value = rawgKeyInput,
-                    onValueChange = { rawgKeyInput = it },
-                    label = { Text("RAWG API anahtarı") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                Button(
-                    onClick = { vm.saveRawgApiKey(rawgKeyInput) },
-                    enabled = rawgKeyInput.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Kaydet") }
-                rawgStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-            }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionHeader("RAWG (Oyun Metadata)")
+            Text(
+                "Elle eklenen oyunlara kapak görseli ve tür bilgisi getirmek için ücretsiz RAWG API anahtarı.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedTextField(
+                value = rawgKeyInput,
+                onValueChange = { rawgKeyInput = it },
+                label = { Text("RAWG API anahtarı") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            Button(
+                onClick = { vm.saveRawgApiKey(rawgKeyInput) },
+                enabled = rawgKeyInput.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Kaydet") }
+            rawgStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("TMDB (Film/Dizi)", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Film/dizi arama ve loglama için kişisel kullanım amaçlı ücretsiz TMDB API anahtarı.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                OutlinedTextField(
-                    value = tmdbKeyInput,
-                    onValueChange = { tmdbKeyInput = it },
-                    label = { Text("TMDB API anahtarı") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                Button(
-                    onClick = { vm.saveTmdbApiKey(tmdbKeyInput) },
-                    enabled = tmdbKeyInput.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Kaydet") }
-                tmdbStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-            }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionHeader("TMDB (Film/Dizi)")
+            Text(
+                "Film/dizi arama ve loglama için kişisel kullanım amaçlı ücretsiz TMDB API anahtarı.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedTextField(
+                value = tmdbKeyInput,
+                onValueChange = { tmdbKeyInput = it },
+                label = { Text("TMDB API anahtarı") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            Button(
+                onClick = { vm.saveTmdbApiKey(tmdbKeyInput) },
+                enabled = tmdbKeyInput.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Kaydet") }
+            tmdbStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Yedekleme", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Tüm veriler cihazında tutulur. JSON yedeği alıp istediğin yerde saklayabilir, " +
-                        "yeni cihazda içe aktarabilirsin. İçe aktarma mevcut verilerin ÜZERİNE yazar.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Button(
-                    onClick = { exportLauncher.launch("mesuper-yedek-${LocalDate.now()}.json") },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Dışa Aktar (JSON)") }
-                OutlinedButton(
-                    onClick = { importLauncher.launch(arrayOf("application/json")) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("İçe Aktar") }
-                status?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-            }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionHeader("Yedekleme")
+            Text(
+                "Tüm veriler cihazında tutulur. JSON yedeği alıp istediğin yerde saklayabilir, " +
+                    "yeni cihazda içe aktarabilirsin. İçe aktarma mevcut verilerin ÜZERİNE yazar.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(
+                onClick = { exportLauncher.launch("mesuper-yedek-${LocalDate.now()}.json") },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Dışa Aktar (JSON)") }
+            OutlinedButton(
+                onClick = { importLauncher.launch(arrayOf("application/json")) },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("İçe Aktar") }
+            status?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Hakkında", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Me SuperApp 0.1.0 — Kotlin + Compose arayüz, gömülü Python/pandas analiz motoru (Chaquopy).",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            SectionHeader("Hakkında")
+            Text(
+                "Me SuperApp 0.1.0 — Kotlin + Compose arayüz, gömülü Python/pandas analiz motoru (Chaquopy).",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

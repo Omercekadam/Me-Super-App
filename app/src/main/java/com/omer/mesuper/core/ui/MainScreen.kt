@@ -8,17 +8,17 @@ import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SportsEsports
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +27,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -88,12 +89,10 @@ fun MainScreen(quickAdd: QuickAddViewModel = hiltViewModel()) {
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    val title = if (currentRoute == "settings") "Ayarlar"
-                    else Destination.entries.firstOrNull { it.route == currentRoute }?.label ?: "Me SuperApp"
-                    Text(title)
-                },
+            // Faz 6: başlık metni yok — her ekran kendi büyük ScreenTitle'ını çiziyor.
+            // Üst çubuk yalnızca status bar inset'i + ayarlar dişlisini taşıyan ince bir şerit.
+            TopAppBar(
+                title = {},
                 actions = {
                     IconButton(onClick = {
                         navController.navigate("settings") { launchSingleTop = true }
@@ -101,6 +100,9 @@ fun MainScreen(quickAdd: QuickAddViewModel = hiltViewModel()) {
                         Icon(Icons.Default.Settings, contentDescription = "Ayarlar")
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
             )
         },
         bottomBar = {

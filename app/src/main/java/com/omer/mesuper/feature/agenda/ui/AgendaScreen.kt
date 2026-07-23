@@ -15,20 +15,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -46,6 +46,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.omer.mesuper.core.pomodoro.PomodoroPhase
 import com.omer.mesuper.core.pomodoro.PomodoroState
+import com.omer.mesuper.core.ui.DeleteButton
+import com.omer.mesuper.core.ui.LocalModuleColors
+import com.omer.mesuper.core.ui.RowDivider
+import com.omer.mesuper.core.ui.ScreenTitle
+import com.omer.mesuper.core.ui.SectionHeader
+import com.omer.mesuper.core.ui.SoftPanel
 import com.omer.mesuper.feature.agenda.data.TaskEntity
 
 private fun parseHex(hex: String): Color =
@@ -70,27 +76,20 @@ fun AgendaScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(16.dp),
     ) {
+        item { ScreenTitle(title = "Ajanda") }
+
         state.error?.let { error ->
             item {
-                Card {
-                    Text(
-                        "Analiz hatası: $error",
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(16.dp),
-                    )
+                SoftPanel(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                ) {
+                    Text("Analiz hatası: $error")
                 }
             }
         }
 
-        item {
-            HabitChainSection(
-                habits = state.habits,
-                onAdd = { showHabitDialog = true },
-                onToggle = vm::toggleTick,
-                onDelete = vm::deleteHabit,
-            )
-        }
-
+        // Odak: Pomodoro (yumuşak agenda-mor panel).
         item {
             PomodoroSection(
                 state = pomodoroState,
@@ -100,6 +99,15 @@ fun AgendaScreen(
                 onPause = pomodoroVm::pause,
                 onResume = pomodoroVm::resume,
                 onStop = pomodoroVm::stop,
+            )
+        }
+
+        item {
+            HabitChainSection(
+                habits = state.habits,
+                onAdd = { showHabitDialog = true },
+                onToggle = vm::toggleTick,
+                onDelete = vm::deleteHabit,
             )
         }
 
@@ -130,50 +138,55 @@ private fun HabitChainSection(
     onToggle: (Long) -> Unit,
     onDelete: (Long) -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SectionHeader("Alışkanlık Zinciri", onAdd)
-            if (habits.isEmpty()) {
-                Text("Henüz alışkanlık yok. Zincirini kırma!", style = MaterialTheme.typography.bodySmall)
-            }
-            habits.forEach { habit ->
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("${habit.emoji} ${habit.name}")
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "🔥 ${habit.currentStreak} (en uzun ${habit.longestStreak})",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            DeleteButton { onDelete(habit.id) }
-                        }
+    val modules = LocalModuleColors.current
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SectionHeader(
+            "Alışkanlık Zinciri",
+            icon = Icons.Default.Link,
+            module = modules.agenda,
+            trailing = { TextButton(onClick = onAdd) { Text("+ Ekle") } },
+        )
+        if (habits.isEmpty()) {
+            Text("Henüz alışkanlık yok. Zincirini kırma!", style = MaterialTheme.typography.bodySmall)
+        }
+        habits.forEachIndexed { index, habit ->
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("${habit.emoji} ${habit.name}")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "🔥 ${habit.currentStreak} (en uzun ${habit.longestStreak})",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        DeleteButton { onDelete(habit.id) }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        habit.last7Days.forEachIndexed { index, ticked ->
-                            val isToday = index == habit.last7Days.lastIndex
-                            Box(
-                                Modifier
-                                    .size(28.dp)
-                                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                                    .then(
-                                        if (ticked) {
-                                            Modifier.background(parseHex(habit.colorHex), CircleShape)
-                                        } else Modifier,
-                                    )
-                                    .then(if (isToday) Modifier.clickable { onToggle(habit.id) } else Modifier),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                if (ticked) Text("✓", color = Color.White, style = MaterialTheme.typography.labelSmall)
-                            }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    habit.last7Days.forEachIndexed { dayIndex, ticked ->
+                        val isToday = dayIndex == habit.last7Days.lastIndex
+                        Box(
+                            Modifier
+                                .size(28.dp)
+                                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                                .then(
+                                    if (ticked) {
+                                        Modifier.background(parseHex(habit.colorHex), CircleShape)
+                                    } else Modifier,
+                                )
+                                .then(if (isToday) Modifier.clickable { onToggle(habit.id) } else Modifier),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (ticked) Text("✓", color = Color.White, style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
             }
+            if (index < habits.lastIndex) RowDivider()
         }
     }
 }
@@ -188,6 +201,7 @@ private fun PomodoroSection(
     onResume: () -> Unit,
     onStop: () -> Unit,
 ) {
+    val modules = LocalModuleColors.current
     var selectedMinutes by rememberSaveable { mutableStateOf(25) }
     var selectedTaskId by rememberSaveable { mutableStateOf<Long?>(null) }
     var taskMenuExpanded by rememberSaveable { mutableStateOf(false) }
@@ -196,75 +210,82 @@ private fun PomodoroSection(
         ActivityResultContracts.RequestPermission()
     ) { }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    SoftPanel(
+        containerColor = modules.agenda.container,
+        contentColor = modules.agenda.onContainer,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(22.dp))
             Text("Pomodoro", style = MaterialTheme.typography.titleMedium)
+        }
 
-            val minutes = state.remainingSeconds / 60
-            val seconds = state.remainingSeconds % 60
-            val display = if (state.phase == PomodoroPhase.IDLE) "%02d:00".format(selectedMinutes) else "%02d:%02d".format(minutes, seconds)
-            Text(display, style = MaterialTheme.typography.displaySmall)
+        val minutes = state.remainingSeconds / 60
+        val seconds = state.remainingSeconds % 60
+        val display = if (state.phase == PomodoroPhase.IDLE) "%02d:00".format(selectedMinutes) else "%02d:%02d".format(minutes, seconds)
+        Text(display, style = MaterialTheme.typography.displayMedium)
 
-            if (state.phase == PomodoroPhase.IDLE) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(15, 25, 45).forEach { m ->
-                        FilterChip(
-                            selected = selectedMinutes == m,
-                            onClick = { selectedMinutes = m },
-                            label = { Text("$m dk") },
-                        )
-                    }
+        if (state.phase == PomodoroPhase.IDLE) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(15, 25, 45).forEach { m ->
+                    FilterChip(
+                        selected = selectedMinutes == m,
+                        onClick = { selectedMinutes = m },
+                        label = { Text("$m dk") },
+                    )
                 }
+            }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    val selectedTitle = openTasks.firstOrNull { it.id == selectedTaskId }?.title ?: "Görev seçme (isteğe bağlı)"
-                    TextButton(onClick = { taskMenuExpanded = true }) { Text("📌 $selectedTitle") }
-                    DropdownMenu(expanded = taskMenuExpanded, onDismissRequest = { taskMenuExpanded = false }) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val selectedTitle = openTasks.firstOrNull { it.id == selectedTaskId }?.title ?: "Görev seçme (isteğe bağlı)"
+                TextButton(onClick = { taskMenuExpanded = true }) { Text("📌 $selectedTitle") }
+                DropdownMenu(expanded = taskMenuExpanded, onDismissRequest = { taskMenuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Görev yok") },
+                        onClick = { selectedTaskId = null; taskMenuExpanded = false },
+                    )
+                    openTasks.forEach { task ->
                         DropdownMenuItem(
-                            text = { Text("Görev yok") },
-                            onClick = { selectedTaskId = null; taskMenuExpanded = false },
+                            text = { Text(task.title) },
+                            onClick = { selectedTaskId = task.id; taskMenuExpanded = false },
                         )
-                        openTasks.forEach { task ->
-                            DropdownMenuItem(
-                                text = { Text(task.title) },
-                                onClick = { selectedTaskId = task.id; taskMenuExpanded = false },
-                            )
-                        }
                     }
-                }
-
-                TextButton(
-                    onClick = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        }
-                        val title = openTasks.firstOrNull { it.id == selectedTaskId }?.title
-                        onStart(selectedMinutes, selectedTaskId, title)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("▶ Başlat") }
-            } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (state.phase == PomodoroPhase.RUNNING) {
-                        TextButton(onClick = onPause) { Text("⏸ Duraklat") }
-                    } else if (state.phase == PomodoroPhase.PAUSED) {
-                        TextButton(onClick = onResume) { Text("▶ Devam") }
-                    }
-                    TextButton(onClick = onStop) { Text("⏹ Bitir") }
-                }
-                state.taskTitle?.let {
-                    Text("Görev: $it", style = MaterialTheme.typography.bodySmall)
                 }
             }
 
-            stats?.let {
-                Text(
-                    "Bugün ${it.todayMinutes} dk (${it.todaySessions}) • Bu hafta ${it.weekMinutes} dk • " +
-                        "Tamamlanma %${"%.0f".format(it.completionRate * 100)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            TextButton(
+                onClick = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                    val title = openTasks.firstOrNull { it.id == selectedTaskId }?.title
+                    onStart(selectedMinutes, selectedTaskId, title)
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("▶ Başlat") }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (state.phase == PomodoroPhase.RUNNING) {
+                    TextButton(onClick = onPause) { Text("⏸ Duraklat") }
+                } else if (state.phase == PomodoroPhase.PAUSED) {
+                    TextButton(onClick = onResume) { Text("▶ Devam") }
+                }
+                TextButton(onClick = onStop) { Text("⏹ Bitir") }
             }
+            state.taskTitle?.let {
+                Text("Görev: $it", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        stats?.let {
+            Text(
+                "Bugün ${it.todayMinutes} dk (${it.todaySessions}) • Bu hafta ${it.weekMinutes} dk • " +
+                    "Tamamlanma %${"%.0f".format(it.completionRate * 100)}",
+                style = MaterialTheme.typography.labelSmall,
+            )
         }
     }
 }
@@ -276,29 +297,33 @@ private fun TaskListSection(
     onToggleDone: (TaskEntity, Boolean) -> Unit,
     onDelete: (Long) -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            SectionHeader("Yapılacaklar", onAdd)
-            if (tasks.isEmpty()) {
-                Text("Görev yok.", style = MaterialTheme.typography.bodySmall)
-            }
-            tasks.forEach { task ->
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = task.isDone, onCheckedChange = { onToggleDone(task, it) })
-                        Text(
-                            task.title,
-                            style = if (task.isDone) {
-                                MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            } else MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-                    DeleteButton { onDelete(task.id) }
+    val modules = LocalModuleColors.current
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        SectionHeader(
+            "Yapılacaklar",
+            icon = Icons.Default.Checklist,
+            module = modules.agenda,
+            trailing = { TextButton(onClick = onAdd) { Text("+ Ekle") } },
+        )
+        if (tasks.isEmpty()) {
+            Text("Görev yok.", style = MaterialTheme.typography.bodySmall)
+        }
+        tasks.forEach { task ->
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = task.isDone, onCheckedChange = { onToggleDone(task, it) })
+                    Text(
+                        task.title,
+                        style = if (task.isDone) {
+                            MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else MaterialTheme.typography.bodyMedium,
+                    )
                 }
+                DeleteButton { onDelete(task.id) }
             }
         }
     }
@@ -306,23 +331,22 @@ private fun TaskListSection(
 
 @Composable
 private fun GithubStreakSection(streak: GithubStreak?) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("GitHub Streak", style = MaterialTheme.typography.titleMedium)
-            if (streak == null) {
-                Text(
-                    "Ayarlar'dan GitHub kullanıcı adı ve token girip senkronize et.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                Text("🔥 ${streak.currentStreak} günlük streak (en uzun ${streak.longestStreak})")
-                Text(
-                    "Bu yıl ${streak.totalThisYear} commit",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+    val modules = LocalModuleColors.current
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        SectionHeader("GitHub Streak", icon = Icons.Default.LocalFireDepartment, module = modules.agenda)
+        if (streak == null) {
+            Text(
+                "Ayarlar'dan GitHub kullanıcı adı ve token girip senkronize et.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Text("🔥 ${streak.currentStreak} günlük streak (en uzun ${streak.longestStreak})")
+            Text(
+                "Bu yıl ${streak.totalThisYear} commit",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -393,28 +417,4 @@ private fun AddTaskDialog(onConfirm: (title: String, dueDate: java.time.LocalDat
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } },
     )
-}
-
-@Composable
-private fun SectionHeader(title: String, onAdd: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        TextButton(onClick = onAdd) { Text("+ Ekle") }
-    }
-}
-
-@Composable
-private fun DeleteButton(onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(32.dp)) {
-        Icon(
-            Icons.Default.Delete,
-            contentDescription = "Sil",
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(18.dp),
-        )
-    }
 }

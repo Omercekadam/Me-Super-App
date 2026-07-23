@@ -1,26 +1,28 @@
 package com.omer.mesuper.feature.finance.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Card
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Autorenew
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,6 +38,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.omer.mesuper.core.ui.DeleteButton
+import com.omer.mesuper.core.ui.HeroPanel
+import com.omer.mesuper.core.ui.LocalModuleColors
+import com.omer.mesuper.core.ui.RowDivider
+import com.omer.mesuper.core.ui.ScreenTitle
+import com.omer.mesuper.core.ui.SectionHeader
+import com.omer.mesuper.core.ui.SoftPanel
 import com.omer.mesuper.core.ui.formatKurusAsTl
 import com.omer.mesuper.feature.finance.data.GoalWithProgress
 import com.omer.mesuper.feature.finance.data.TxRow
@@ -62,28 +71,44 @@ fun FinanceScreen(vm: FinanceViewModel = hiltViewModel()) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+        contentPadding = PaddingValues(16.dp),
     ) {
+        item { ScreenTitle(title = "Finans", subtitle = "Bu ay • ${state.month}") }
+
         state.error?.let { error ->
             item {
-                Card {
-                    Text(
-                        "Analiz hatası: $error",
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(16.dp),
-                    )
+                SoftPanel(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                ) {
+                    Text("Analiz hatası: $error")
                 }
             }
         }
 
-        item { SummarySection(state) }
+        item { SummaryHero(state) }
 
         if (state.insights.isNotEmpty()) {
-            item { InsightsSection(state.insights) }
+            item {
+                SoftPanel(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ) {
+                    state.insights.forEach { insight ->
+                        val emoji = when (insight.severity) {
+                            "alert" -> "🚨"; "warn" -> "⚠️"; else -> "💡"
+                        }
+                        Text("$emoji ${insight.text}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
         }
 
-        item { PieSection(state) }
-        item { ForecastSection(state) }
+        if (!state.summary?.byCategory.isNullOrEmpty()) {
+            item { PieSection(state) }
+        }
+        state.forecast?.let { item { ForecastSection(state) } }
+
         item {
             BudgetsSection(
                 state = state,
@@ -107,11 +132,21 @@ fun FinanceScreen(vm: FinanceViewModel = hiltViewModel()) {
             )
         }
 
-        item {
-            Text("Son İşlemler", style = MaterialTheme.typography.titleMedium)
-        }
-        items(state.transactions.take(50), key = { it.id }) { row ->
-            TransactionRow(row, onDelete = { vm.deleteTransaction(row.id) })
+        if (state.transactions.isNotEmpty()) {
+            item {
+                val shown = state.transactions.take(50)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionHeader(
+                        "Son İşlemler",
+                        icon = Icons.Default.Payments,
+                        module = LocalModuleColors.current.finance,
+                    )
+                    shown.forEachIndexed { index, row ->
+                        TransactionRow(row, onDelete = { vm.deleteTransaction(row.id) })
+                        if (index < shown.lastIndex) RowDivider()
+                    }
+                }
+            }
         }
     }
 
@@ -143,40 +178,19 @@ fun FinanceScreen(vm: FinanceViewModel = hiltViewModel()) {
     }
 }
 
+/** Odak çıpası: bakiye + gelir/gider (solid hero, gradyansız). */
 @Composable
-private fun SummarySection(state: FinanceUiState) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Bu Ay (${state.month})", style = MaterialTheme.typography.titleMedium)
-            val summary = state.summary
-            if (summary == null) {
-                Text(if (state.loading) "Yükleniyor…" else "Henüz veri yok")
-            } else {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Gelir: ${summary.incomeKurus.formatKurusAsTl()}")
-                    Text("Gider: ${summary.expenseKurus.formatKurusAsTl()}")
-                }
-                Text(
-                    "Bakiye: ${summary.balanceKurus.formatKurusAsTl()}",
-                    style = MaterialTheme.typography.titleLarge,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun InsightsSection(insights: List<Insight>) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("İçgörüler", style = MaterialTheme.typography.titleMedium)
-            insights.forEach { insight ->
-                val (emoji, color) = when (insight.severity) {
-                    "alert" -> "🚨" to MaterialTheme.colorScheme.error
-                    "warn" -> "⚠️" to Color(0xFFB26A00)
-                    else -> "💡" to MaterialTheme.colorScheme.onSurfaceVariant
-                }
-                Text("$emoji ${insight.text}", color = color)
+private fun SummaryHero(state: FinanceUiState) {
+    HeroPanel(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Bakiye", style = MaterialTheme.typography.titleMedium)
+        val summary = state.summary
+        if (summary == null) {
+            Text(if (state.loading) "Yükleniyor…" else "Henüz veri yok")
+        } else {
+            Text(summary.balanceKurus.formatKurusAsTl(), style = MaterialTheme.typography.displaySmall)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Gelir: ${summary.incomeKurus.formatKurusAsTl()}", style = MaterialTheme.typography.bodyMedium)
+                Text("Gider: ${summary.expenseKurus.formatKurusAsTl()}", style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
@@ -185,39 +199,35 @@ private fun InsightsSection(insights: List<Insight>) {
 @Composable
 private fun PieSection(state: FinanceUiState) {
     val byCategory = state.summary?.byCategory.orEmpty()
-    if (byCategory.isEmpty()) return
     val colorByName = state.categories.associate { it.name to parseHex(it.colorHex) }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Harcama Dağılımı", style = MaterialTheme.typography.titleMedium)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                PieChart(
-                    modifier = Modifier.size(140.dp),
-                    data = byCategory.map { cat ->
-                        Pie(
-                            // label bilinçli boş: lejantı sağdaki sütun çiziyor
-                            data = cat.totalKurus.toDouble(),
-                            color = colorByName[cat.category] ?: Color.Gray,
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SectionHeader("Harcama Dağılımı", icon = Icons.Default.PieChart, module = LocalModuleColors.current.finance)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PieChart(
+                modifier = Modifier.size(140.dp),
+                data = byCategory.map { cat ->
+                    Pie(
+                        data = cat.totalKurus.toDouble(),
+                        color = colorByName[cat.category] ?: Color.Gray,
+                    )
+                },
+                style = Pie.Style.Stroke(width = 26.dp),
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                byCategory.forEach { cat ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier
+                                .size(10.dp)
+                                .background(colorByName[cat.category] ?: Color.Gray, CircleShape)
                         )
-                    },
-                    style = Pie.Style.Stroke(width = 26.dp),
-                )
-                Spacer(Modifier.width(16.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    byCategory.forEach { cat ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                Modifier
-                                    .size(10.dp)
-                                    .background(colorByName[cat.category] ?: Color.Gray, CircleShape)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                "${cat.category} %${"%.0f".format(cat.share * 100)}",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "${cat.category} %${"%.0f".format(cat.share * 100)}",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                     }
                 }
             }
@@ -228,21 +238,16 @@ private fun PieSection(state: FinanceUiState) {
 @Composable
 private fun ForecastSection(state: FinanceUiState) {
     val forecast = state.forecast ?: return
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Ay Sonu Tahmini", style = MaterialTheme.typography.titleMedium)
-            Text(
-                forecast.projectedKurus.formatKurusAsTl(),
-                style = MaterialTheme.typography.headlineSmall,
-            )
-            Text(
-                "Günlük ort. ${forecast.dailyPaceKurus.formatKurusAsTl()} • " +
-                    "kalan ${forecast.daysLeft} gün • " +
-                    "bekleyen abonelik ${forecast.remainingSubsKurus.formatKurusAsTl()}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        SectionHeader("Ay Sonu Tahmini", icon = Icons.Default.TrendingUp, module = LocalModuleColors.current.finance)
+        Text(forecast.projectedKurus.formatKurusAsTl(), style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "Günlük ort. ${forecast.dailyPaceKurus.formatKurusAsTl()} • " +
+                "kalan ${forecast.daysLeft} gün • " +
+                "bekleyen abonelik ${forecast.remainingSubsKurus.formatKurusAsTl()}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -252,43 +257,46 @@ private fun BudgetsSection(
     onAdd: () -> Unit,
     onDelete: (Long) -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            SectionHeader("Harcama Limitleri", onAdd)
-            if (state.budgets.isEmpty()) {
-                Text("Limit yok. Genel veya kategori bazlı limit ekle.", style = MaterialTheme.typography.bodySmall)
-            }
-            state.budgets.forEach { budget ->
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        val label = budget.row.categoryName?.let { "${budget.row.emoji} $it" } ?: "🧮 Genel"
-                        Text(label)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "${budget.spentKurus.formatKurusAsTl()} / ${budget.row.monthlyLimitKurus.formatKurusAsTl()}",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                            DeleteButton { onDelete(budget.row.id) }
-                        }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionHeader(
+            "Harcama Limitleri",
+            icon = Icons.Default.Speed,
+            module = LocalModuleColors.current.finance,
+            trailing = { TextButton(onClick = onAdd) { Text("+ Ekle") } },
+        )
+        if (state.budgets.isEmpty()) {
+            Text("Limit yok. Genel veya kategori bazlı limit ekle.", style = MaterialTheme.typography.bodySmall)
+        }
+        state.budgets.forEach { budget ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val label = budget.row.categoryName?.let { "${budget.row.emoji} $it" } ?: "🧮 Genel"
+                    Text(label)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "${budget.spentKurus.formatKurusAsTl()} / ${budget.row.monthlyLimitKurus.formatKurusAsTl()}",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        DeleteButton { onDelete(budget.row.id) }
                     }
-                    val animatedRatio by animateFloatAsState(
-                        targetValue = budget.ratio.coerceAtMost(1f),
-                        label = "budgetRatio",
-                    )
-                    LinearProgressIndicator(
-                        progress = { animatedRatio },
-                        modifier = Modifier.fillMaxWidth(),
-                        color = when {
-                            budget.ratio >= 1f -> MaterialTheme.colorScheme.error
-                            budget.ratio >= 0.85f -> Color(0xFFB26A00)
-                            else -> MaterialTheme.colorScheme.primary
-                        },
-                    )
                 }
+                val animatedRatio by animateFloatAsState(
+                    targetValue = budget.ratio.coerceAtMost(1f),
+                    label = "budgetRatio",
+                )
+                LinearProgressIndicator(
+                    progress = { animatedRatio },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = when {
+                        budget.ratio >= 1f -> MaterialTheme.colorScheme.error
+                        budget.ratio >= 0.85f -> MaterialTheme.colorScheme.secondary
+                        else -> MaterialTheme.colorScheme.primary
+                    },
+                )
             }
         }
     }
@@ -300,39 +308,43 @@ private fun SubscriptionsSection(
     onAdd: () -> Unit,
     onDelete: (Long) -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SectionHeader("Abonelikler", onAdd)
-            if (state.subscriptions.isEmpty()) {
-                Text("Abonelik yok.", style = MaterialTheme.typography.bodySmall)
-            } else {
-                Text(
-                    "Aylık sabit gider: ${state.monthlyFixedKurus.formatKurusAsTl()}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-            state.subscriptions.forEach { sub ->
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column {
-                        Text("📦 ${sub.name}")
-                        Text(
-                            if (sub.period.name == "MONTHLY") "Her ayın ${sub.billingDay}. günü"
-                            else "Yılda bir: ${sub.billingMonth ?: 1}. ayın ${sub.billingDay}. günü",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(sub.amountKurus.formatKurusAsTl())
-                        DeleteButton { onDelete(sub.id) }
-                    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionHeader(
+            "Abonelikler",
+            icon = Icons.Default.Autorenew,
+            module = LocalModuleColors.current.finance,
+            trailing = { TextButton(onClick = onAdd) { Text("+ Ekle") } },
+        )
+        if (state.subscriptions.isEmpty()) {
+            Text("Abonelik yok.", style = MaterialTheme.typography.bodySmall)
+        } else {
+            Text(
+                "Aylık sabit gider: ${state.monthlyFixedKurus.formatKurusAsTl()}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        state.subscriptions.forEachIndexed { index, sub ->
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("📦 ${sub.name}")
+                    Text(
+                        if (sub.period.name == "MONTHLY") "Her ayın ${sub.billingDay}. günü"
+                        else "Yılda bir: ${sub.billingMonth ?: 1}. ayın ${sub.billingDay}. günü",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(sub.amountKurus.formatKurusAsTl())
+                    DeleteButton { onDelete(sub.id) }
                 }
             }
+            if (index < state.subscriptions.lastIndex) RowDivider()
         }
     }
 }
@@ -344,36 +356,39 @@ private fun GoalsSection(
     onContribute: (Long) -> Unit,
     onDelete: (Long) -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            SectionHeader("Birikim Hedefleri", onAdd)
-            if (goals.isEmpty()) {
-                Text("Hedef yok.", style = MaterialTheme.typography.bodySmall)
-            }
-            goals.forEach { goal ->
-                val ratio = if (goal.targetKurus > 0) {
-                    (goal.savedKurus.toFloat() / goal.targetKurus).coerceIn(0f, 1f)
-                } else 0f
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("🎯 ${goal.name}")
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            TextButton(onClick = { onContribute(goal.id) }) { Text("+ Katkı") }
-                            DeleteButton { onDelete(goal.id) }
-                        }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionHeader(
+            "Birikim Hedefleri",
+            icon = Icons.Default.Savings,
+            module = LocalModuleColors.current.finance,
+            trailing = { TextButton(onClick = onAdd) { Text("+ Ekle") } },
+        )
+        if (goals.isEmpty()) {
+            Text("Hedef yok.", style = MaterialTheme.typography.bodySmall)
+        }
+        goals.forEach { goal ->
+            val ratio = if (goal.targetKurus > 0) {
+                (goal.savedKurus.toFloat() / goal.targetKurus).coerceIn(0f, 1f)
+            } else 0f
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("🎯 ${goal.name}")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = { onContribute(goal.id) }) { Text("+ Katkı") }
+                        DeleteButton { onDelete(goal.id) }
                     }
-                    val animatedGoalRatio by animateFloatAsState(targetValue = ratio, label = "goalRatio")
-                    LinearProgressIndicator(progress = { animatedGoalRatio }, modifier = Modifier.fillMaxWidth())
-                    Text(
-                        "${goal.savedKurus.formatKurusAsTl()} / ${goal.targetKurus.formatKurusAsTl()}  (%${"%.0f".format(ratio * 100)})",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
+                val animatedGoalRatio by animateFloatAsState(targetValue = ratio, label = "goalRatio")
+                LinearProgressIndicator(progress = { animatedGoalRatio }, modifier = Modifier.fillMaxWidth())
+                Text(
+                    "${goal.savedKurus.formatKurusAsTl()} / ${goal.targetKurus.formatKurusAsTl()}  (%${"%.0f".format(ratio * 100)})",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -402,33 +417,10 @@ private fun TransactionRow(row: TxRow, onDelete: () -> Unit) {
             val sign = if (row.type == TxType.EXPENSE) "-" else "+"
             Text(
                 "$sign${row.amountKurus.formatKurusAsTl()}",
-                color = if (row.type == TxType.EXPENSE) Color(0xFFC62828) else Color(0xFF2E7D32),
+                color = if (row.type == TxType.EXPENSE) MaterialTheme.colorScheme.error
+                else MaterialTheme.colorScheme.tertiary,
             )
             DeleteButton(onDelete)
         }
-    }
-}
-
-@Composable
-private fun SectionHeader(title: String, onAdd: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        TextButton(onClick = onAdd) { Text("+ Ekle") }
-    }
-}
-
-@Composable
-private fun DeleteButton(onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(32.dp)) {
-        Icon(
-            Icons.Default.Delete,
-            contentDescription = "Sil",
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(18.dp),
-        )
     }
 }

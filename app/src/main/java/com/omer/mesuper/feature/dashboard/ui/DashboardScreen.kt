@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,23 +26,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.omer.mesuper.core.ui.AppCard
+import com.omer.mesuper.core.ui.HeroPanel
 import com.omer.mesuper.core.ui.LocalModuleColors
-import com.omer.mesuper.core.ui.ModuleIcon
+import com.omer.mesuper.core.ui.RowDivider
+import com.omer.mesuper.core.ui.ScreenTitle
 import com.omer.mesuper.core.ui.SectionHeader
+import com.omer.mesuper.core.ui.SoftPanel
 import com.omer.mesuper.core.ui.formatKurusAsTl
 import com.omer.mesuper.feature.activity.ui.ActivityViewModel
 import com.omer.mesuper.feature.agenda.ui.AgendaViewModel
 import com.omer.mesuper.feature.finance.data.TxType
 import com.omer.mesuper.feature.finance.ui.FinanceViewModel
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val headerFormatter = DateTimeFormatter.ofPattern("d MMMM yyyy, EEEE", Locale("tr", "TR"))
 private val txDateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale("tr", "TR"))
 
-/** Ana sayfa: bugünün özeti. Finans + Ajanda + Aktivite verilerini tek ekranda birleştirir. */
+private fun greeting(): String = when (LocalTime.now().hour) {
+    in 0..5 -> "İyi geceler"
+    in 6..11 -> "Günaydın"
+    in 12..17 -> "İyi günler"
+    else -> "İyi akşamlar"
+}
+
+/** Ana sayfa: bugünün özeti. Finans + Ajanda + Aktivite verilerini tek bütünleşik akışta birleştirir. */
 @Composable
 fun DashboardScreen(
     vm: FinanceViewModel = hiltViewModel(),
@@ -59,20 +70,15 @@ fun DashboardScreen(
         contentPadding = PaddingValues(16.dp),
     ) {
         item {
-            Text(
-                LocalDate.now().format(headerFormatter),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            ScreenTitle(
+                title = greeting(),
+                subtitle = LocalDate.now().format(headerFormatter),
             )
         }
 
-        // Odak kartı: bakiye (tonal hero — gradyan yok, dolu renk).
+        // Odak çıpası: bakiye (solid hero — gradyan yok).
         item {
-            AppCard(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                val onHero = MaterialTheme.colorScheme.onPrimaryContainer
+            HeroPanel(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -80,34 +86,24 @@ fun DashboardScreen(
                     Icon(
                         Icons.Default.AccountBalanceWallet,
                         contentDescription = null,
-                        tint = onHero,
                         modifier = Modifier.size(22.dp),
                     )
-                    Text("Finansal Durum", style = MaterialTheme.typography.titleMedium, color = onHero)
+                    Text("Finansal Durum", style = MaterialTheme.typography.titleMedium)
                 }
                 val summary = state.summary
                 if (summary == null) {
-                    Text(
-                        if (state.loading) "Yükleniyor…" else "Henüz işlem yok — + ile başla",
-                        color = onHero,
-                    )
+                    Text(if (state.loading) "Yükleniyor…" else "Henüz işlem yok — + ile başla")
                 } else {
-                    Text(
-                        summary.balanceKurus.formatKurusAsTl(),
-                        style = MaterialTheme.typography.displaySmall,
-                        color = onHero,
-                    )
+                    Text(summary.balanceKurus.formatKurusAsTl(), style = MaterialTheme.typography.displaySmall)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(
                             "Bu ay gider: ${summary.expenseKurus.formatKurusAsTl()}",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = onHero,
                         )
                         state.forecast?.let {
                             Text(
                                 "Ay sonu ~${it.projectedKurus.formatKurusAsTl()}",
                                 style = MaterialTheme.typography.labelLarge,
-                                color = onHero,
                             )
                         }
                     }
@@ -115,6 +111,7 @@ fun DashboardScreen(
 
                 val generalBudget = state.budgets.firstOrNull { it.row.categoryId == null }
                 if (generalBudget != null) {
+                    val onHero = LocalContentColor.current
                     val animatedRatio by animateFloatAsState(
                         targetValue = generalBudget.ratio.coerceAtMost(1f),
                         label = "budgetRatio",
@@ -122,17 +119,13 @@ fun DashboardScreen(
                     LinearProgressIndicator(
                         progress = { animatedRatio },
                         modifier = Modifier.fillMaxWidth(),
-                        color = when {
-                            generalBudget.ratio >= 1f -> MaterialTheme.colorScheme.error
-                            generalBudget.ratio >= 0.85f -> MaterialTheme.colorScheme.secondary
-                            else -> onHero
-                        },
+                        color = if (generalBudget.ratio >= 1f) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.secondary,
                         trackColor = onHero.copy(alpha = 0.2f),
                     )
                     Text(
                         "Genel limit: ${generalBudget.spentKurus.formatKurusAsTl()} / ${generalBudget.row.monthlyLimitKurus.formatKurusAsTl()}",
                         style = MaterialTheme.typography.labelMedium,
-                        color = onHero,
                     )
                 }
             }
@@ -141,26 +134,23 @@ fun DashboardScreen(
         val topInsights = state.insights.take(2)
         if (topInsights.isNotEmpty()) {
             item {
-                AppCard(
+                SoftPanel(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     topInsights.forEach { insight ->
                         val emoji = when (insight.severity) {
                             "alert" -> "🚨"; "warn" -> "⚠️"; else -> "💡"
                         }
-                        Text(
-                            "$emoji ${insight.text}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        )
+                        Text("$emoji ${insight.text}", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
         }
 
         item {
-            AppCard {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SectionHeader("Bugün", icon = Icons.Default.Checklist, module = modules.agenda)
 
                 val tickedHabits = agendaState.habits.count { it.tickedToday }
@@ -196,7 +186,7 @@ fun DashboardScreen(
         }
 
         item {
-            AppCard {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SectionHeader("Aktivite (son 7 gün)", icon = Icons.Default.SportsEsports, module = modules.activity)
                 val balance = activityState.weeklyBalance
                 if (balance == null || (balance.gameMinutes == 0 && balance.workMinutes == 0)) {
@@ -224,9 +214,9 @@ fun DashboardScreen(
         val recent = state.transactions.take(3)
         if (recent.isNotEmpty()) {
             item {
-                AppCard {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     SectionHeader("Son İşlemler", icon = Icons.Default.AccountBalanceWallet, module = modules.finance)
-                    recent.forEach { row ->
+                    recent.forEachIndexed { index, row ->
                         Row(
                             Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -248,6 +238,7 @@ fun DashboardScreen(
                                 )
                             }
                         }
+                        if (index < recent.lastIndex) RowDivider()
                     }
                 }
             }
