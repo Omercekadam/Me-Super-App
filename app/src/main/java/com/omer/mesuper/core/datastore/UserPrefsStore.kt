@@ -1,6 +1,7 @@
 package com.omer.mesuper.core.datastore
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -24,6 +25,7 @@ class UserPrefsStore @Inject constructor(
         val STEAM_ID = stringPreferencesKey("steam_id")
         val RAWG_API_KEY = stringPreferencesKey("rawg_api_key")
         val TMDB_API_KEY = stringPreferencesKey("tmdb_api_key")
+        val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color_enabled")
     }
 
     val githubPat: Flow<String?> = context.dataStore.data.map { it[Keys.GITHUB_PAT] }
@@ -32,6 +34,9 @@ class UserPrefsStore @Inject constructor(
     val steamId: Flow<String?> = context.dataStore.data.map { it[Keys.STEAM_ID] }
     val rawgApiKey: Flow<String?> = context.dataStore.data.map { it[Keys.RAWG_API_KEY] }
     val tmdbApiKey: Flow<String?> = context.dataStore.data.map { it[Keys.TMDB_API_KEY] }
+
+    /** false = marka paleti (varsayılan), true = sistem/Material You dinamik renk. */
+    val dynamicColorEnabled: Flow<Boolean> = context.dataStore.data.map { it[Keys.DYNAMIC_COLOR] ?: false }
 
     suspend fun setGithubCredentials(pat: String, username: String) {
         context.dataStore.edit {
@@ -60,5 +65,9 @@ class UserPrefsStore @Inject constructor(
 
     suspend fun setTmdbApiKey(apiKey: String) {
         context.dataStore.edit { it[Keys.TMDB_API_KEY] = apiKey }
+    }
+
+    suspend fun setDynamicColorEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.DYNAMIC_COLOR] = enabled }
     }
 }

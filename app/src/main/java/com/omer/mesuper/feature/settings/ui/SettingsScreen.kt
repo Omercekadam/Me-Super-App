@@ -16,6 +16,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -73,6 +76,14 @@ class SettingsViewModel @Inject constructor(
 
     val steamId: StateFlow<String?> =
         userPrefsStore.steamId.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** false = marka paleti, true = sistem/Material You dinamik renk. */
+    val dynamicColorEnabled: StateFlow<Boolean> =
+        userPrefsStore.dynamicColorEnabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun setDynamicColor(enabled: Boolean) {
+        viewModelScope.launch { userPrefsStore.setDynamicColorEnabled(enabled) }
+    }
 
     fun exportTo(uri: Uri) {
         viewModelScope.launch {
@@ -161,6 +172,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     var steamIdInput by rememberSaveable(savedSteamId) { mutableStateOf(savedSteamId ?: "") }
     var rawgKeyInput by rememberSaveable { mutableStateOf("") }
     var tmdbKeyInput by rememberSaveable { mutableStateOf("") }
+    val dynamicColor by vm.dynamicColorEnabled.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -169,6 +181,30 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Görünüm", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Uygulama rengini markanın Navy+Amber paletinden mi yoksa cihazının sistem " +
+                        "renklerinden mi (Material You) alsın? Değişiklik anında uygulanır.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = !dynamicColor,
+                        onClick = { vm.setDynamicColor(false) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    ) { Text("Marka rengi") }
+                    SegmentedButton(
+                        selected = dynamicColor,
+                        onClick = { vm.setDynamicColor(true) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    ) { Text("Sistem rengi") }
+                }
+            }
+        }
+
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("GitHub Streak", style = MaterialTheme.typography.titleMedium)

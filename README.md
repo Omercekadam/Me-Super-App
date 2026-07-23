@@ -53,6 +53,8 @@ The Kotlin ↔ Python surface is a single function: `run(fn, payload_json) -> re
 
 Kotlin 2.3 · Jetpack Compose (Material 3) · Hilt · Room · DataStore · OkHttp · WorkManager · Glance (home screen widget) · Coil 3 · kotlinx.serialization · Chaquopy 17 (Python 3.13, pandas) · GitHub Actions
 
+**Design system:** brand Navy + Amber palette (full light/dark Material 3 scheme) with an in-app toggle for Material You dynamic color, per-module accent colors, chunky rounded shapes, and a playful type pairing — Fredoka (headings/numbers) + Nunito (body). Both fonts are bundled and licensed under the [SIL Open Font License 1.1](docs/fonts-license.md).
+
 ## Development
 
 ```bash
