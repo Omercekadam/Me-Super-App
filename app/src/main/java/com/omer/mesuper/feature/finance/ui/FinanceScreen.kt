@@ -1,6 +1,7 @@
 package com.omer.mesuper.feature.finance.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -274,8 +275,12 @@ private fun BudgetsSection(
                             DeleteButton { onDelete(budget.row.id) }
                         }
                     }
+                    val animatedRatio by animateFloatAsState(
+                        targetValue = budget.ratio.coerceAtMost(1f),
+                        label = "budgetRatio",
+                    )
                     LinearProgressIndicator(
-                        progress = { budget.ratio.coerceAtMost(1f) },
+                        progress = { animatedRatio },
                         modifier = Modifier.fillMaxWidth(),
                         color = when {
                             budget.ratio >= 1f -> MaterialTheme.colorScheme.error
@@ -361,7 +366,8 @@ private fun GoalsSection(
                             DeleteButton { onDelete(goal.id) }
                         }
                     }
-                    LinearProgressIndicator(progress = { ratio }, modifier = Modifier.fillMaxWidth())
+                    val animatedGoalRatio by animateFloatAsState(targetValue = ratio, label = "goalRatio")
+                    LinearProgressIndicator(progress = { animatedGoalRatio }, modifier = Modifier.fillMaxWidth())
                     Text(
                         "${goal.savedKurus.formatKurusAsTl()} / ${goal.targetKurus.formatKurusAsTl()}  (%${"%.0f".format(ratio * 100)})",
                         style = MaterialTheme.typography.labelSmall,

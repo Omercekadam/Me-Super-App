@@ -1,5 +1,6 @@
 package com.omer.mesuper.feature.dashboard.ui
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -86,8 +87,12 @@ fun DashboardScreen(
 
                     val generalBudget = state.budgets.firstOrNull { it.row.categoryId == null }
                     if (generalBudget != null) {
+                        val animatedRatio by animateFloatAsState(
+                            targetValue = generalBudget.ratio.coerceAtMost(1f),
+                            label = "budgetRatio",
+                        )
                         LinearProgressIndicator(
-                            progress = { generalBudget.ratio.coerceAtMost(1f) },
+                            progress = { animatedRatio },
                             modifier = Modifier.fillMaxWidth(),
                             color = when {
                                 generalBudget.ratio >= 1f -> MaterialTheme.colorScheme.error

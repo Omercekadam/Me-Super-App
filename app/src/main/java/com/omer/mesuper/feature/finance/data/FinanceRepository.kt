@@ -1,7 +1,11 @@
 package com.omer.mesuper.feature.finance.data
 
+import com.omer.mesuper.core.notifications.NotificationHelper
+import com.omer.mesuper.core.ui.formatKurusAsTl
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -9,6 +13,7 @@ import javax.inject.Singleton
 class FinanceRepository @Inject constructor(
     private val dao: FinanceDao,
     private val planningDao: PlanningDao,
+    private val notificationHelper: NotificationHelper,
 ) {
     val txRows: Flow<List<TxRow>> = dao.observeTxRows()
     val categories: Flow<List<CategoryEntity>> = dao.observeCategories()
@@ -32,6 +37,28 @@ class FinanceRepository @Inject constructor(
                 note = note,
             )
         )
+        if (type == TxType.EXPENSE) checkBudgetAlerts()
+    }
+
+    /** Bu ayın harcamalarını bütçe limitleriyle karşılaştırır; aşan limitler için bildirim gönderir. */
+    private suspend fun checkBudgetAlerts() {
+        val thisMonth = YearMonth.now()
+        val monthRows = dao.observeTxRows().first()
+            .filter { it.type == TxType.EXPENSE && YearMonth.from(it.occurredAt) == thisMonth }
+        val totalExpense = monthRows.sumOf { it.amountKurus }
+        val byCategory = monthRows.groupBy { it.categoryId }.mapValues { (_, rows) -> rows.sumOf { it.amountKurus } }
+
+        planningDao.observeBudgets().first().forEach { budget ->
+            val spent = if (budget.categoryId == null) totalExpense else byCategory[budget.categoryId] ?: 0L
+            if (budget.monthlyLimitKurus > 0 && spent >= budget.monthlyLimitKurus) {
+                val label = budget.categoryName ?: "Genel"
+                notificationHelper.notifyBudgetExceeded(
+                    budgetId = budget.id,
+                    title = "Bütçe aşıldı: $label",
+                    text = "${spent.formatKurusAsTl()} / ${budget.monthlyLimitKurus.formatKurusAsTl()} harcandı",
+                )
+            }
+        }
     }
 
     suspend fun deleteTransaction(id: Long) = dao.deleteTransaction(id)

@@ -1,5 +1,6 @@
 package com.omer.mesuper.feature.activity.ui
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -123,7 +124,7 @@ fun ActivityScreen(vm: ActivityViewModel = hiltViewModel()) {
                 }
                 actionStatus?.let { msg -> item { Text(msg, style = MaterialTheme.typography.bodySmall) } }
                 if (state.games.isEmpty()) {
-                    item { Text("Henüz oyun yok.", style = MaterialTheme.typography.bodySmall) }
+                    item { EmptyStateHint("🎮", "Henüz oyun yok — Steam'den senkronize et veya elle ekle.") }
                 }
                 items(state.games, key = { it.id }) { game ->
                     GameCard(
@@ -142,7 +143,7 @@ fun ActivityScreen(vm: ActivityViewModel = hiltViewModel()) {
                     }
                 }
                 if (state.media.isEmpty()) {
-                    item { Text("Henüz film/dizi yok.", style = MaterialTheme.typography.bodySmall) }
+                    item { EmptyStateHint("🎬", "Henüz film/dizi yok — TMDB'den ara ve ekle.") }
                 }
                 items(state.media, key = { it.id }) { media ->
                     MediaCard(media = media, onMarkWatched = { ratingMedia = media }, onDelete = { vm.deleteMedia(media.id) })
@@ -155,7 +156,7 @@ fun ActivityScreen(vm: ActivityViewModel = hiltViewModel()) {
                     }
                 }
                 if (state.raceNotes.isEmpty()) {
-                    item { Text("Henüz yarış notu yok.", style = MaterialTheme.typography.bodySmall) }
+                    item { EmptyStateHint("🏁", "Henüz yarış notu yok — ilk turunu kaydet.") }
                 }
                 items(state.raceNotes, key = { it.id }) { note ->
                     RaceNoteCard(note = note, onDelete = { vm.deleteRaceNote(note.id) })
@@ -191,6 +192,22 @@ fun ActivityScreen(vm: ActivityViewModel = hiltViewModel()) {
 }
 
 @Composable
+private fun EmptyStateHint(emoji: String, text: String) {
+    Column(
+        Modifier.fillMaxWidth().padding(vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(emoji, style = MaterialTheme.typography.displaySmall)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
 private fun WeeklyBalanceSection(balance: WeeklyBalance?, genres: List<GenreMinutes>) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -202,8 +219,12 @@ private fun WeeklyBalanceSection(balance: WeeklyBalance?, genres: List<GenreMinu
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
+                val animatedRatio by animateFloatAsState(
+                    targetValue = balance.gameRatio.toFloat(),
+                    label = "weeklyBalanceRatio",
+                )
                 LinearProgressIndicator(
-                    progress = { balance.gameRatio.toFloat() },
+                    progress = { animatedRatio },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp)

@@ -9,6 +9,7 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.omer.mesuper.core.python.AnalyticsEngine
+import com.omer.mesuper.core.work.DailyReminderScheduler
 import com.omer.mesuper.core.work.SteamSyncScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -46,5 +47,6 @@ class MeSuperApp : Application(), SingletonImageLoader.Factory {
             runCatching { analyticsEngine.warmUp() }
         }
         SteamSyncScheduler.schedule(this)
+        DailyReminderScheduler.schedule(this)
     }
 }

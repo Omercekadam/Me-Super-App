@@ -36,10 +36,22 @@ The Kotlin ↔ Python surface is a single function: `run(fn, payload_json) -> re
 | Dashboard | ✅ v1 | today at a glance, finance snapshot, habit/task/focus summary, quick-add sheet |
 | Agenda | ✅ v1 | habit chains with streaks (pandas), to-dos, pomodoro as a foreground service with task pairing, GitHub commit streak (GraphQL) |
 | Activity archive | ✅ v1 | Steam playtime sync (daily WorkManager snapshot + pandas diff), manual game log with RAWG metadata, movie/TV logging via TMDB, sim-racing lap journal, weekly play/work balance & genre breakdown (pandas) |
+| Widget & notifications | ✅ v1 | Glance home-screen widget (today's open tasks + habit streak, tap-to-complete), budget-exceeded alerts, a daily digest for unticked habits & subscriptions due today (WorkManager) |
+| Polish | ✅ v1 | Material You dynamic color with a hand-picked light/dark fallback palette, animated progress bars, friendly empty states |
+
+## Screenshots
+
+<p>
+  <img src="docs/screenshots/dashboard.png" width="200" alt="Dashboard">
+  <img src="docs/screenshots/finance.png" width="200" alt="Finance">
+  <img src="docs/screenshots/agenda.png" width="200" alt="Agenda">
+  <img src="docs/screenshots/activity.png" width="200" alt="Activity archive">
+  <img src="docs/screenshots/widget.png" width="200" alt="Home screen widget">
+</p>
 
 ## Tech stack
 
-Kotlin 2.3 · Jetpack Compose (Material 3) · Hilt · Room · DataStore · OkHttp · WorkManager · Coil 3 · kotlinx.serialization · Chaquopy 17 (Python 3.13, pandas) · GitHub Actions
+Kotlin 2.3 · Jetpack Compose (Material 3) · Hilt · Room · DataStore · OkHttp · WorkManager · Glance (home screen widget) · Coil 3 · kotlinx.serialization · Chaquopy 17 (Python 3.13, pandas) · GitHub Actions
 
 ## Development
 
